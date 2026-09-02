@@ -1,0 +1,5 @@
+# Shell scripts run inside Linux containers (Dockerfile.selfhost copies
+# docker-entrypoint.sh into the image). A Windows checkout with
+# core.autocrlf=true would otherwise rewrite them to CRLF, and `sh` fails on
+# the trailing \r with "set: Illegal option -" in a restart loop.
+*.sh text eol=lf
