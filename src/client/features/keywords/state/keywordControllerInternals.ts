@@ -48,7 +48,7 @@ export function useKeywordSearchParams() {
   return useCallback(
     (updates: Record<string, string | number | boolean | undefined>) => {
       void navigate({
-        search: (prev) => ({ ...prev, ...updates }),
+        search: (prev: Record<string, unknown>) => ({ ...prev, ...updates }),
         replace: true,
       });
     },

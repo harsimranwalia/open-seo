@@ -9,9 +9,11 @@ function itemFor(
 }
 
 describe("runSelfhostPreflight", () => {
-  it("passes the stock Docker setup (local_noauth + DataForSEO key)", () => {
+  it("passes with hosted auth + DataForSEO key", () => {
     const result = runSelfhostPreflight({
-      AUTH_MODE: "local_noauth",
+      AUTH_MODE: "hosted",
+      BETTER_AUTH_URL: "http://localhost:3001",
+      BETTER_AUTH_SECRET: "x".repeat(40),
       DATAFORSEO_API_KEY: btoa("user@example.com:secret"),
     });
 
@@ -24,34 +26,23 @@ describe("runSelfhostPreflight", () => {
     const result = runSelfhostPreflight({ AUTH_MODE: "local-noauth" });
 
     expect(result.failed).toBe(true);
-    expect(itemFor(result, "AUTH_MODE")?.message).toContain(
-      "cloudflare_access, local_noauth, hosted",
-    );
+    expect(itemFor(result, "AUTH_MODE")?.message).toContain("hosted");
   });
 
-  it("fails cloudflare_access mode without TEAM_DOMAIN and POLICY_AUD", () => {
+  it("fails when Better Auth env is missing", () => {
     const result = runSelfhostPreflight({});
 
     expect(result.failed).toBe(true);
     const item = itemFor(result, "AUTH_MODE");
-    expect(item?.message).toContain("TEAM_DOMAIN and POLICY_AUD");
-    expect(item?.message).toContain("AUTH_MODE is unset");
-  });
-
-  it("fails a bare-hostname TEAM_DOMAIN with the https:// fix", () => {
-    const result = runSelfhostPreflight({
-      AUTH_MODE: "cloudflare_access",
-      TEAM_DOMAIN: "your-team.cloudflareaccess.com",
-      POLICY_AUD: "aud-tag",
-    });
-
-    expect(result.failed).toBe(true);
-    expect(itemFor(result, "TEAM_DOMAIN")?.message).toContain("https://");
+    expect(item?.message).toContain("BETTER_AUTH_URL");
+    expect(item?.message).toContain("BETTER_AUTH_SECRET");
   });
 
   it("warns on a DataForSEO key that is not base64 login:password", () => {
     const result = runSelfhostPreflight({
-      AUTH_MODE: "local_noauth",
+      AUTH_MODE: "hosted",
+      BETTER_AUTH_URL: "http://localhost:3001",
+      BETTER_AUTH_SECRET: "x".repeat(40),
       DATAFORSEO_API_KEY: "raw-dashboard-key",
     });
 
@@ -62,17 +53,18 @@ describe("runSelfhostPreflight", () => {
 
   it("warns that GSC stays disabled on a short BETTER_AUTH_SECRET", () => {
     const result = runSelfhostPreflight({
-      AUTH_MODE: "local_noauth",
+      AUTH_MODE: "hosted",
+      BETTER_AUTH_URL: "http://localhost:3001",
+      BETTER_AUTH_SECRET: "too-short",
       GOOGLE_CLIENT_ID: "id",
       GOOGLE_CLIENT_SECRET: "secret",
-      BETTER_AUTH_SECRET: "too-short",
     });
 
     expect(itemFor(result, "Search Console")?.level).toBe("warn");
     expect(itemFor(result, "Search Console")?.message).toContain("32");
   });
 
-  it("fails hosted mode listing every missing variable", () => {
+  it("fails hosted mode listing missing Better Auth URL", () => {
     const result = runSelfhostPreflight({
       AUTH_MODE: "hosted",
       BETTER_AUTH_SECRET: "x".repeat(40),
@@ -81,12 +73,15 @@ describe("runSelfhostPreflight", () => {
     expect(result.failed).toBe(true);
     const item = itemFor(result, "AUTH_MODE");
     expect(item?.message).toContain("BETTER_AUTH_URL");
-    expect(item?.message).toContain("GOOGLE_CLIENT_ID");
-    expect(item?.message).not.toContain("BETTER_AUTH_SECRET,");
+    expect(item?.message).not.toContain("GOOGLE_CLIENT_ID");
   });
 
   it("mentions ALLOWED_HOST when unset", () => {
-    const result = runSelfhostPreflight({ AUTH_MODE: "local_noauth" });
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "hosted",
+      BETTER_AUTH_URL: "http://localhost:3001",
+      BETTER_AUTH_SECRET: "x".repeat(40),
+    });
 
     expect(itemFor(result, "ALLOWED_HOST")?.level).toBe("info");
     expect(itemFor(result, "ALLOWED_HOST")?.message).toContain("reverse proxy");

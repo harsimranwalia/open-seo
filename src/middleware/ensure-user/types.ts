@@ -7,9 +7,8 @@ export type EnsuredProject = NonNullable<
 export type EnsuredUserContext = {
   userId: string;
   userEmail: string;
-  // True when the user's email is verified (hosted) or auth is delegated
-  // (Cloudflare Access / local), where there is no unverified state. Used to
-  // gate paid onboarding spend behind verification.
+  // Always true: email verification was removed; sessions are treated as
+  // verified. Kept on the context type for callers that still read the field.
   emailVerified: boolean;
   organizationId: string;
   project?: EnsuredProject;

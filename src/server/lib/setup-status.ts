@@ -22,12 +22,11 @@ type SelfHostSetupStatus = {
 // shared checks against runtime env so the two reports can never drift.
 const CHECK_ENV_VARS = [
   "AUTH_MODE",
-  "TEAM_DOMAIN",
-  "POLICY_AUD",
+  "BETTER_AUTH_URL",
+  "BETTER_AUTH_SECRET",
   "DATAFORSEO_API_KEY",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
-  "BETTER_AUTH_SECRET",
   "OPENROUTER_API_KEY",
 ] as const;
 

@@ -4,26 +4,16 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { MCP_AUTH_CONTEXT_PROP } from "@/server/mcp/context";
-
-const selfHostedAuthMocks = vi.hoisted(() => ({
-  resolveCloudflareAccessContext: vi.fn(),
-  resolveLocalNoAuthContext: vi.fn(),
-}));
+import { MCP_SCOPE } from "@/lib/oauth-resource";
+import {
+  createWorkersOAuthMcpProps,
+  MCP_AUTH_CONTEXT_PROP,
+} from "@/server/mcp/context";
 
 const serverMocks = vi.hoisted(() => ({
   nextServerId: 0,
   serverIds: new WeakMap<McpServer, number>(),
   lastServer: undefined as McpServer | undefined,
-}));
-
-vi.mock("@/middleware/ensure-user/cloudflareAccess", () => ({
-  resolveCloudflareAccessContext:
-    selfHostedAuthMocks.resolveCloudflareAccessContext,
-}));
-
-vi.mock("@/middleware/ensure-user/delegated", () => ({
-  resolveLocalNoAuthContext: selfHostedAuthMocks.resolveLocalNoAuthContext,
 }));
 
 vi.mock("@/server/mcp/server", () => ({
@@ -69,6 +59,19 @@ const transportOptionsSchema = z.object({
   }),
 });
 
+function createAuthProps() {
+  return createWorkersOAuthMcpProps({
+    userId: "user-1",
+    userEmail: "person@example.com",
+    organizationId: "org-1",
+    clientId: "client-1",
+    scopes: [MCP_SCOPE],
+    audience: "https://open-seo.test/mcp",
+    subject: "user-1",
+    baseUrl: "https://open-seo.test",
+  });
+}
+
 function createMcpRequest() {
   return new Request("https://open-seo.test/mcp", {
     method: "POST",
@@ -84,59 +87,36 @@ function createMcpRequest() {
   });
 }
 
-describe("handleSelfHostedOpenSeoMcpRequest", () => {
+describe("handleAuthenticatedOpenSeoMcpRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     serverMocks.nextServerId = 0;
     serverMocks.serverIds = new WeakMap<McpServer, number>();
     serverMocks.lastServer = undefined;
-    selfHostedAuthMocks.resolveLocalNoAuthContext.mockResolvedValue({
-      userId: "local-admin",
-      userEmail: "admin@localhost",
-      organizationId: "delegated-local-admin",
-    });
-    selfHostedAuthMocks.resolveCloudflareAccessContext.mockResolvedValue({
-      userId: "cloudflare-user",
-      userEmail: "person@example.com",
-      organizationId: "delegated-cloudflare-user",
-    });
   });
 
-  it("accepts local no-auth MCP requests with the local admin context", async () => {
-    const { handleSelfHostedOpenSeoMcpRequest } =
+  it("rejects requests without MCP auth context", async () => {
+    const { handleAuthenticatedOpenSeoMcpRequest } =
       await import("@/server/mcp/transport");
 
-    const response = await handleSelfHostedOpenSeoMcpRequest(
+    const response = await handleAuthenticatedOpenSeoMcpRequest(
       createMcpRequest(),
-      "local_noauth",
+      {},
       {},
       ctx,
     );
-    const body = transportOptionsSchema.parse(await response.json());
 
-    expect(response.status).toBe(200);
-    expect(selfHostedAuthMocks.resolveLocalNoAuthContext).toHaveBeenCalled();
-    expect(
-      body.options.authContext?.props[MCP_AUTH_CONTEXT_PROP],
-    ).toMatchObject({
-      userId: "local-admin",
-      userEmail: "admin@localhost",
-      organizationId: "delegated-local-admin",
-      clientId: null,
-      scopes: [],
-      audience: "https://open-seo.test/mcp",
-      subject: "local-admin",
-      baseUrl: "https://open-seo.test",
-    });
+    expect(response.status).toBe(403);
   });
 
-  it("accepts Cloudflare Access MCP requests through the existing Access resolver", async () => {
-    const { handleSelfHostedOpenSeoMcpRequest } =
+  it("accepts authenticated MCP requests with auth context", async () => {
+    const { handleAuthenticatedOpenSeoMcpRequest } =
       await import("@/server/mcp/transport");
 
-    const response = await handleSelfHostedOpenSeoMcpRequest(
+    const props = createAuthProps();
+    const response = await handleAuthenticatedOpenSeoMcpRequest(
       createMcpRequest(),
-      "cloudflare_access",
+      props,
       {},
       ctx,
     );
@@ -144,71 +124,44 @@ describe("handleSelfHostedOpenSeoMcpRequest", () => {
 
     expect(response.status).toBe(200);
     expect(
-      selfHostedAuthMocks.resolveCloudflareAccessContext,
-    ).toHaveBeenCalledWith(expect.any(Headers));
-    expect(
       body.options.authContext?.props[MCP_AUTH_CONTEXT_PROP],
     ).toMatchObject({
-      userId: "cloudflare-user",
+      userId: "user-1",
       userEmail: "person@example.com",
-      organizationId: "delegated-cloudflare-user",
-      clientId: null,
-      scopes: [],
-      audience: "https://open-seo.test/mcp",
-      subject: "cloudflare-user",
-      baseUrl: "https://open-seo.test",
+      organizationId: "org-1",
+      scopes: [MCP_SCOPE],
     });
   });
 
   // The OOM came from the GET SSE stream pinning a per-request McpServer, so
   // GET must 405 without ever building one.
   it("returns 405 for the standalone GET SSE stream without building a server", async () => {
-    const { handleSelfHostedOpenSeoMcpRequest } =
+    const { handleAuthenticatedOpenSeoMcpRequest } =
       await import("@/server/mcp/transport");
 
-    const response = await handleSelfHostedOpenSeoMcpRequest(
+    const response = await handleAuthenticatedOpenSeoMcpRequest(
       new Request("https://open-seo.test/mcp", {
         method: "GET",
         headers: { Accept: "text/event-stream" },
       }),
-      "local_noauth",
+      createAuthProps(),
       {},
       ctx,
     );
 
     expect(response.status).toBe(405);
     expect(response.headers.get("Allow")).toContain("POST");
-    // nextServerId only advances when a server is built — a GET must not.
     expect(serverMocks.nextServerId).toBe(0);
-  });
-
-  it("lets the MCP transport handle OPTIONS without auth context", async () => {
-    const { handleSelfHostedOpenSeoMcpRequest } =
-      await import("@/server/mcp/transport");
-
-    const response = await handleSelfHostedOpenSeoMcpRequest(
-      new Request("https://open-seo.test/mcp", { method: "OPTIONS" }),
-      "cloudflare_access",
-      {},
-      ctx,
-    );
-    const body = transportOptionsSchema.parse(await response.json());
-
-    expect(response.status).toBe(200);
-    expect(
-      selfHostedAuthMocks.resolveCloudflareAccessContext,
-    ).not.toHaveBeenCalled();
-    expect(body.options.authContext).toBeUndefined();
   });
 
   // Directory scanners (e.g. Smithery) read server metadata from initialize.
   it("serves directory metadata in the initialize response", async () => {
-    const { handleSelfHostedOpenSeoMcpRequest } =
+    const { handleAuthenticatedOpenSeoMcpRequest } =
       await import("@/server/mcp/transport");
 
-    await handleSelfHostedOpenSeoMcpRequest(
+    await handleAuthenticatedOpenSeoMcpRequest(
       createMcpRequest(),
-      "local_noauth",
+      createAuthProps(),
       {},
       ctx,
     );

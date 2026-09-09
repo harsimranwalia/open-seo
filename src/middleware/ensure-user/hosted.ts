@@ -31,7 +31,7 @@ export async function resolveHostedContext(
     return {
       userId: session.user.id,
       userEmail: session.user.email,
-      emailVerified: session.user.emailVerified ?? false,
+      emailVerified: true,
       organizationId: activeOrganizationId,
     };
   }
@@ -50,7 +50,7 @@ export async function resolveHostedContext(
   return {
     userId: session.user.id,
     userEmail: session.user.email,
-    emailVerified: session.user.emailVerified ?? false,
+    emailVerified: true,
     organizationId,
   };
 }

@@ -2,7 +2,7 @@
 
 Run OpenSEO locally with Docker.
 
-In Docker mode, OpenSEO uses `AUTH_MODE=local_noauth` (no auth checks, local admin user `admin@localhost`). Only expose it behind your own auth-protected reverse proxy, tunnel, or private network.
+In Docker mode, OpenSEO uses Better Auth email/password (`AUTH_MODE=hosted`). Configure `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and Super Admin credentials in `.env`. Users sign up / sign in at `/sign-up` and `/sign-in`; Super Admin uses `/super-admin/login`.
 
 The default `compose.yaml` uses the published GHCR image:
 
@@ -31,11 +31,13 @@ Optional env values:
 
 - `PORT` (defaults to `3001`)
 - `ALLOWED_HOST` (single reverse-proxy hostname to allow in Vite preview)
-- `AUTH_MODE=local_noauth` (already set in compose)
+- `AUTH_MODE=hosted` (default in compose)
+- `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` (required for auth)
+- `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` (Super Admin dashboard)
 - `OPEN_SEO_IMAGE` (defaults to `ghcr.io/every-app/open-seo:latest`)
 - `OPENROUTER_API_KEY` (required for AI features such as SAM; see [OpenRouter](https://openrouter.ai/settings/keys))
 
-If you are putting Docker behind a reverse proxy or a temporary tunnel, remember that Docker self-hosting runs with app auth disabled. Only expose it behind your own auth-protected reverse proxy, tunnel, or private network, and add the public hostname before restarting:
+If you are putting Docker behind a reverse proxy or a temporary tunnel, add the public hostname before restarting:
 
 ```bash
 ALLOWED_HOST=yourdomain.com docker compose up -d
@@ -99,7 +101,7 @@ To confirm Docker Compose is using the expected environment variables:
 docker compose config
 ```
 
-Check that `AUTH_MODE=local_noauth`, and that `DATAFORSEO_API_KEY` is the base64
+Check that `AUTH_MODE=hosted`, `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` are set, and that `DATAFORSEO_API_KEY` is the base64
 encoded value of your DataForSEO email and API password in this format:
 `email:password`.
 

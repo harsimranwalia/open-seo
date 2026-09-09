@@ -23,12 +23,12 @@ describe("toClientError", () => {
     const error = toClientError(
       new AppError(
         "AUTH_CONFIG_MISSING",
-        "TEAM_DOMAIN must be a full https URL like https://your-team.cloudflareaccess.com",
+        "BETTER_AUTH_SECRET must be at least 32 characters",
       ),
     );
 
     expect(error.message).toBe(
-      "AUTH_CONFIG_MISSING: TEAM_DOMAIN must be a full https URL like https://your-team.cloudflareaccess.com",
+      "AUTH_CONFIG_MISSING: BETTER_AUTH_SECRET must be at least 32 characters",
     );
   });
 

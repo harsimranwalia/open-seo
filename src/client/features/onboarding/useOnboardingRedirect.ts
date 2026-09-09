@@ -3,27 +3,18 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { onboardingAnswersQueryOptions } from "@/client/features/onboarding/onboardingModel";
 import { useSession } from "@/lib/auth-client";
-import {
-  isEmailVerificationBypassed,
-  isHostedClientAuthMode,
-} from "@/lib/auth-mode";
 
 export function useOnboardingRedirect() {
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const isHostedMode = isHostedClientAuthMode();
-  const isEmailVerified =
-    session?.user?.emailVerified === true || isEmailVerificationBypassed();
   const onboardingQuery = useQuery({
     ...onboardingAnswersQueryOptions(),
-    enabled: isHostedMode && Boolean(session?.user?.id) && isEmailVerified,
+    enabled: Boolean(session?.user?.id),
   });
 
   useEffect(() => {
     if (
-      !isHostedMode ||
       !session?.user?.id ||
-      !isEmailVerified ||
       onboardingQuery.isLoading ||
       onboardingQuery.isError ||
       onboardingQuery.data?.completedAt ||
@@ -34,12 +25,10 @@ export function useOnboardingRedirect() {
 
     void navigate({ to: "/onboarding", search: { step: 0 }, replace: true });
   }, [
-    isHostedMode,
     navigate,
     onboardingQuery.data?.completedAt,
     onboardingQuery.isError,
     onboardingQuery.isLoading,
-    isEmailVerified,
     session?.user?.id,
   ]);
 }

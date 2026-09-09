@@ -13,10 +13,8 @@ import {
   telemetryState,
   user,
 } from "@/db/schema";
-import { getAuthMode } from "@/lib/auth-mode";
 import {
   getOptionalEnvValue,
-  isHostedServerAuthMode,
 } from "@/server/lib/runtime-env";
 import { getSetupIssueSummary } from "@/server/lib/setup-status";
 import { isTelemetryOptOutValue } from "@/shared/selfhost-checks";
@@ -120,7 +118,6 @@ function isNonProductionBuild() {
 }
 
 async function telemetryIsDisabled() {
-  if (await isHostedServerAuthMode()) return true;
   if (
     isTelemetryOptOutValue(
       await getOptionalEnvValue("OPENSEO_TELEMETRY_DISABLED"),
@@ -189,7 +186,7 @@ async function claimHeartbeat(now: Date): Promise<ClaimedHeartbeat | null> {
 }
 
 // No session-based activity counts: self-host auth is delegated per request
-// (Cloudflare Access / local_noauth) and never creates better-auth session
+// (Better Auth email/password) and never creates better-auth session
 // rows, so those queries would always report zero. Install-level activity
 // falls out of heartbeat cadence instead — a heartbeat means an active day.
 async function collectCounts(): Promise<HeartbeatCounts> {
@@ -303,7 +300,6 @@ export async function maybeSendSelfHostHeartbeat(
     const state = await dependencies.claimHeartbeat(now);
     if (!state) return;
 
-    const authMode = getAuthMode(await getOptionalEnvValue("AUTH_MODE"));
     const counts = await dependencies.collectCounts();
     const setupIssues = await dependencies.collectSetupIssues();
     const prevVersion =
@@ -316,7 +312,7 @@ export async function maybeSendSelfHostHeartbeat(
       : undefined;
 
     await dependencies.sendHeartbeat(state.installId, {
-      deployTarget: authMode === "local_noauth" ? "docker" : "cloudflare",
+      deployTarget: "docker",
       dbBackend: dependencies.getDbBackend(),
       version: dependencies.version,
       ...(prevVersion ? { prevVersion } : {}),

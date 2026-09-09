@@ -9,14 +9,11 @@ import { SamSessionRepository } from "@/server/features/sam/SamSessionRepository
 import { runScheduledRankChecks } from "@/server/features/rank-tracking/services/scheduledRankChecks";
 import { getOrCreateOrganizationCustomer } from "@/server/billing/subscription";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
-import { getAuthMode, isHostedAuthMode } from "@/lib/auth-mode";
 import {
   createOpenSeoOAuthProvider,
   type OpenSeoOAuthEnv,
 } from "@/server/mcp/oauth-provider";
 import { requestWithPublicOrigin } from "@/server/mcp/public-origin";
-import { MCP_ROUTE } from "@/server/mcp/context";
-import { handleSelfHostedOpenSeoMcpRequest } from "@/server/mcp/transport";
 import { withPgClient } from "@/db";
 import {
   AUTUMN_WEBHOOK_PATH,
@@ -50,8 +47,7 @@ async function authorizeOnboardingChat(
   }
   // Ensure the org's Autumn customer exists (and gets its default onboarding-plan
   // credits) before the DO checks the balance — otherwise a brand-new org's first
-  // message can hit a false "out of credits" gate. Hosted-only; self-hosted has
-  // no Autumn.
+  // message can hit a false "out of credits" gate.
   if (await isHostedServerAuthMode()) {
     await getOrCreateOrganizationCustomer(context);
   }
@@ -86,9 +82,6 @@ async function authorizeSamChat(
   if (!session || !project) {
     return new Response("Forbidden", { status: 403 });
   }
-  // Same as onboarding above: make sure the Autumn customer (and its default
-  // free-plan credits) exists before the DO's balance gate runs, or a brand-new
-  // org's first message hits a false "out of credits".
   if (await isHostedServerAuthMode()) {
     await getOrCreateOrganizationCustomer(context);
   }
@@ -140,7 +133,6 @@ function handleFetch(
 ): Response | Promise<Response> {
   ctx.waitUntil(maybeSendSelfHostHeartbeat());
 
-  const authMode = getAuthMode(env.AUTH_MODE);
   const publicRequest = requestWithPublicOrigin(request);
   const pathname = new URL(publicRequest.url).pathname;
 
@@ -148,26 +140,15 @@ function handleFetch(
     return routeChatAgents(publicRequest, env);
   }
 
-  if (isHostedAuthMode(authMode)) {
-    if (pathname === AUTUMN_WEBHOOK_PATH) {
-      return handleAutumnWebhookRequest(publicRequest);
-    }
-
-    return openSeoOAuthProvider.fetch(
-      publicRequest,
-      env as OpenSeoOAuthEnv,
-      ctx,
-    );
+  if (pathname === AUTUMN_WEBHOOK_PATH) {
+    return handleAutumnWebhookRequest(publicRequest);
   }
 
-  if (
-    (authMode === "cloudflare_access" || authMode === "local_noauth") &&
-    pathname === MCP_ROUTE
-  ) {
-    return handleSelfHostedOpenSeoMcpRequest(publicRequest, authMode, env, ctx);
-  }
-
-  return appFetch(request);
+  return openSeoOAuthProvider.fetch(
+    publicRequest,
+    env as OpenSeoOAuthEnv,
+    ctx,
+  );
 }
 
 // Export Workflow classes as named exports

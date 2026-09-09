@@ -23,12 +23,9 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
-function getHostedAuthEmailConfig() {
+function getPasswordResetEmailConfig() {
   return {
     apiKey: getRequiredEnv("LOOPS_API_KEY"),
-    verificationTemplateId: getRequiredEnv(
-      "LOOPS_TRANSACTIONAL_VERIFY_EMAIL_ID",
-    ),
     passwordResetTemplateId: getRequiredEnv(
       "LOOPS_TRANSACTIONAL_RESET_PASSWORD_ID",
     ),
@@ -108,25 +105,6 @@ export async function upsertHostedSignupContact({
   });
 }
 
-export async function sendHostedVerificationEmail({
-  email,
-  confirmationUrl,
-}: {
-  email: string;
-  confirmationUrl: string;
-}) {
-  const config = getHostedAuthEmailConfig();
-  await sendLoopsTransactionalEmail({
-    apiKey: config.apiKey,
-    email,
-    transactionalId: config.verificationTemplateId,
-    dataVariables: {
-      appName: "OpenSEO",
-      confirmationUrl,
-    },
-  });
-}
-
 export async function sendHostedPasswordResetEmail({
   email,
   resetUrl,
@@ -134,7 +112,7 @@ export async function sendHostedPasswordResetEmail({
   email: string;
   resetUrl: string;
 }) {
-  const config = getHostedAuthEmailConfig();
+  const config = getPasswordResetEmailConfig();
   await sendLoopsTransactionalEmail({
     apiKey: config.apiKey,
     email,

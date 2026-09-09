@@ -50,7 +50,7 @@ export function BacklinksHistorySection({
             <Link
               to="/p/$projectId/backlinks"
               params={{ projectId }}
-              search={(prev) => ({
+              search={(prev: Record<string, unknown>) => ({
                 ...prev,
                 target: item.target,
                 scope: item.scope,

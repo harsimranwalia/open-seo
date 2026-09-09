@@ -112,7 +112,7 @@ function PageLink({
     <Link
       from="/p/$projectId/domain"
       to="/p/$projectId/domain"
-      search={(prev) => ({
+      search={(prev: Record<string, unknown>) => ({
         ...prev,
         page: page === 1 ? undefined : page,
       })}

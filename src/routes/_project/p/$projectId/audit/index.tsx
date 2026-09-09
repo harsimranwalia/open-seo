@@ -34,7 +34,7 @@ function SiteAuditPage() {
   const setSearchParams = useCallback(
     (updates: Record<string, string | undefined>) => {
       void navigate({
-        search: (prev) => ({ ...prev, ...updates }),
+        search: (prev: Record<string, unknown>) => ({ ...prev, ...updates }),
         replace: true,
       });
     },

@@ -2,7 +2,6 @@ import { AUTH_MODES } from "@/lib/auth-mode";
 import {
   looksLikeDataForSeoKey,
   MIN_BETTER_AUTH_SECRET_LENGTH,
-  validateTeamDomain,
 } from "@/shared/selfhost-checks";
 
 // Startup preflight for self-host containers: validate the environment BEFORE
@@ -45,79 +44,19 @@ function checkAuthMode(env: EnvRecord, items: PreflightItem[]): void {
     return;
   }
 
-  const mode = rawMode ?? "cloudflare_access";
-
-  if (mode === "local_noauth") {
-    items.push({
-      key: "auth",
-      name: "AUTH_MODE",
-      level: "ok",
-      message:
-        "local_noauth — no auth, single admin user. Do not expose publicly without your own auth in front.",
-    });
-    return;
-  }
-
-  if (mode === "hosted") {
-    const missing = [
-      "BETTER_AUTH_URL",
-      "BETTER_AUTH_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-    ].filter((name) => !get(env, name));
-    items.push(
-      missing.length
-        ? {
-            key: "auth",
-            name: "AUTH_MODE",
-            level: "fail",
-            message: `hosted mode requires ${missing.join(", ")}.`,
-          }
-        : { key: "auth", name: "AUTH_MODE", level: "ok", message: "hosted" },
-    );
-    return;
-  }
-
-  // cloudflare_access (explicit or defaulted)
-  const teamDomain = get(env, "TEAM_DOMAIN");
-  const policyAud = get(env, "POLICY_AUD");
-  const modeLabel = rawMode
-    ? "cloudflare_access"
-    : "cloudflare_access (default — AUTH_MODE is unset)";
-
-  if (!teamDomain || !policyAud) {
-    const missing = [
-      teamDomain ? null : "TEAM_DOMAIN",
-      policyAud ? null : "POLICY_AUD",
-    ]
-      .filter(Boolean)
-      .join(" and ");
-    items.push({
-      key: "auth",
-      name: "AUTH_MODE",
-      level: "fail",
-      message: `${modeLabel} requires ${missing}. See docs/SELF_HOSTING_CLOUDFLARE.md — or set AUTH_MODE=local_noauth for a private, no-auth deployment.`,
-    });
-    return;
-  }
-
-  const teamDomainResult = validateTeamDomain(teamDomain);
-  if (!teamDomainResult.ok) {
-    items.push({
-      key: "auth",
-      name: "TEAM_DOMAIN",
-      level: "fail",
-      message: teamDomainResult.message,
-    });
-    return;
-  }
-
-  items.push({
-    key: "auth",
-    name: "AUTH_MODE",
-    level: "ok",
-    message: modeLabel,
-  });
+  const missing = ["BETTER_AUTH_URL", "BETTER_AUTH_SECRET"].filter(
+    (name) => !get(env, name),
+  );
+  items.push(
+    missing.length
+      ? {
+          key: "auth",
+          name: "AUTH_MODE",
+          level: "fail",
+          message: `auth requires ${missing.join(", ")}.`,
+        }
+      : { key: "auth", name: "AUTH_MODE", level: "ok", message: "hosted" },
+  );
 }
 
 function checkDataForSeo(env: EnvRecord, items: PreflightItem[]): void {

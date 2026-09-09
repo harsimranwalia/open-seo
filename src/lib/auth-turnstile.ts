@@ -1,16 +1,9 @@
-import { isHostedAuthMode } from "@/lib/auth-mode";
-
 type TurnstileAuthEnv = {
-  AUTH_MODE?: string;
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_SITE_KEY?: string;
 };
 
 export function getHostedTurnstileSecretKey(env: TurnstileAuthEnv) {
-  if (!isHostedAuthMode(env.AUTH_MODE)) {
-    return undefined;
-  }
-
   return env.TURNSTILE_SECRET_KEY?.trim() || undefined;
 }
 

@@ -28,7 +28,7 @@ Configure `.env.local`:
 
    `printf '%s' 'YOUR_LOGIN:YOUR_PASSWORD' | base64`
 
-3. Set `AUTH_MODE=local_noauth` for normal local development.
+3. Set `AUTH_MODE=hosted`, `BETTER_AUTH_URL=http://localhost:3001`, a long `BETTER_AUTH_SECRET` (≥32 chars), plus `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` for the Super Admin dashboard.
 
 Run locally:
 
@@ -69,12 +69,14 @@ D1 (SQLite) is the default. To run against Postgres locally instead — the opt-
 backend for installs that outgrow D1 — see
 [`LOCAL_POSTGRES.md`](./LOCAL_POSTGRES.md).
 
-## Auth Modes
+## Auth
 
-- `AUTH_MODE=cloudflare_access` (default): validates Cloudflare Access JWTs (`cf-access-jwt-assertion`) using `TEAM_DOMAIN` + `POLICY_AUD`.
-- `AUTH_MODE=local_noauth`: local trusted mode, no auth check, injects `admin@localhost`.
-- `AUTH_MODE=hosted`: Better Auth-backed email/password mode. Requires Better Auth schema generation plus `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`.
+OpenSEO uses Better Auth email/password only (`AUTH_MODE=hosted`).
 
-Dev scripts do not set `AUTH_MODE`, so you can test another mode by changing it in `.env.local`.
+Required env:
 
-For Cloudflare deployments, ensure Cloudflare Access is enabled on your Worker route/domain and provide `TEAM_DOMAIN` + `POLICY_AUD` in environment variables.
+- `BETTER_AUTH_SECRET` (≥32 characters)
+- `BETTER_AUTH_URL` (e.g. `http://localhost:3001`)
+- `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` for `/super-admin/login`
+
+Sign up at `/sign-up`, sign in at `/sign-in`. Password reset requires optional Loops templates when configured.

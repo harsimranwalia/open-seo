@@ -7,7 +7,7 @@ import {
 describe("getStandardErrorMessage", () => {
   it("maps known error codes to standard copy", () => {
     expect(getStandardErrorMessage(new Error("PAYMENT_REQUIRED"))).toBe(
-      "An active hosted subscription is required before you can use OpenSEO.",
+      "This feature is temporarily unavailable. Please try again later.",
     );
   });
 
@@ -22,7 +22,7 @@ describe("getStandardErrorMessage", () => {
 
 describe("coded error messages (CODE: detail)", () => {
   const coded = new Error(
-    "AUTH_CONFIG_MISSING: TEAM_DOMAIN must be a full https URL like https://your-team.cloudflareaccess.com",
+    "AUTH_CONFIG_MISSING: BETTER_AUTH_SECRET must be at least 32 characters",
   );
 
   it("extracts the code from a coded message", () => {
@@ -31,7 +31,7 @@ describe("coded error messages (CODE: detail)", () => {
 
   it("shows the server detail instead of the generic text", () => {
     expect(getStandardErrorMessage(coded)).toBe(
-      "TEAM_DOMAIN must be a full https URL like https://your-team.cloudflareaccess.com",
+      "BETTER_AUTH_SECRET must be at least 32 characters",
     );
   });
 

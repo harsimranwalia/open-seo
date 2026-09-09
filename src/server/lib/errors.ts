@@ -20,8 +20,8 @@ export function asAppError(error: unknown): AppError | null {
 }
 
 // Codes whose server-side message is safe and useful to show the user.
-// Setup errors only: their messages are static guidance ("TEAM_DOMAIN must be
-// a full https URL…") that self-hosters need to fix their deployment, and the
+// Setup errors only: their messages are static guidance ("BETTER_AUTH_SECRET
+// must be…") that operators need to fix their deployment, and the
 // alternative is a generic card that makes every misconfiguration look the
 // same. Everything else stays stripped to its bare code.
 const CLIENT_DETAIL_ERROR_CODES = new Set<ErrorCode>(["AUTH_CONFIG_MISSING"]);

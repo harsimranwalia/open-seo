@@ -49,14 +49,11 @@ export function SuggestedQuestions({
 
 export function WelcomeMessage({
   domain,
-  checkoutError,
-  isStartingCheckout,
-  onUpgrade,
 }: {
   domain: string;
-  checkoutError: string | null;
-  isStartingCheckout: boolean;
-  onUpgrade: () => void;
+  checkoutError?: string | null;
+  isStartingCheckout?: boolean;
+  onUpgrade?: () => void;
 }) {
   return (
     <div className="flex gap-3">
@@ -67,8 +64,7 @@ export function WelcomeMessage({
         <div className="space-y-3 text-base-content/80">
           <p>Hey, I’m Sam — welcome to OpenSEO.</p>
           <p>
-            To get full access to OpenSEO, you need to upgrade to the paid plan.
-            But, I’m here if you have any questions.
+            I’m here if you have any questions about the product or your site.
           </p>
           <p>
             You can also{" "}
@@ -92,25 +88,6 @@ export function WelcomeMessage({
             draft a strategy, or do you have questions first? Pick one below to
             get started.
           </p>
-        </div>
-
-        <div className="rounded-box border border-base-300 bg-base-200/50 p-3 text-xs lg:hidden">
-          <p className="font-medium">Want Sam to keep going?</p>
-          <p className="mt-0.5 text-base-content/70">
-            Upgrade to run keyword research, rank tracking, and site audits on{" "}
-            {domain}.
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary btn-xs mt-2"
-            disabled={isStartingCheckout}
-            onClick={onUpgrade}
-          >
-            {isStartingCheckout ? "Redirecting..." : "Upgrade"}
-          </button>
-          {checkoutError ? (
-            <p className="mt-2 text-error">{checkoutError}</p>
-          ) : null}
         </div>
       </div>
     </div>

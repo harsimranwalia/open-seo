@@ -20,7 +20,7 @@ function BrandLookupRoute() {
       initialCompetitors={c}
       onSearchChange={(nextQuery, nextCompetitors) => {
         void navigate({
-          search: (prev) => ({
+          search: (prev: Record<string, unknown>) => ({
             ...prev,
             q: nextQuery.trim() || undefined,
             // One serialization site: comma-join the competitor list.

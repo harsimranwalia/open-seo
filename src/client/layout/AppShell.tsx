@@ -8,8 +8,8 @@ import {
   SeoApiStatusBanners,
 } from "@/client/layout/AppShellParts";
 import { GscReEngagementModal } from "@/client/features/gsc/GscReEngagementModal";
+import { ImpersonationBanner } from "@/client/features/super-admin/ImpersonationBanner";
 import { Sidebar } from "@/client/components/Sidebar";
-import { BILLING_ROUTE } from "@/shared/billing";
 import { getSeoApiKeyStatus } from "@/serverFunctions/config";
 import { getProjects } from "@/serverFunctions/projects";
 import { getLastProjectId } from "@/client/lib/active-project";
@@ -56,24 +56,15 @@ export function AuthenticatedAppLayout({
   // builds links that self-correct via the route guard once data arrives.
   const sidebarProjectId =
     projectId ?? fallbackProjectId ?? rememberedProjectId;
-  const shouldCheckSeoApiKeyStatus = location.pathname !== BILLING_ROUTE;
   const seoApiKeyStatusQuery = useQuery({
     queryKey: ["seoApiKeyStatus"],
     queryFn: () => getSeoApiKeyStatus(),
-    enabled: shouldCheckSeoApiKeyStatus,
   });
-  const isSeoApiKeyConfigured = shouldCheckSeoApiKeyStatus
-    ? (seoApiKeyStatusQuery.data?.configured ?? null)
-    : null;
-  const seoApiKeyStatusError =
-    shouldCheckSeoApiKeyStatus && seoApiKeyStatusQuery.isError;
+  const isSeoApiKeyConfigured =
+    seoApiKeyStatusQuery.data?.configured ?? null;
+  const seoApiKeyStatusError = seoApiKeyStatusQuery.isError;
 
   React.useEffect(() => {
-    if (!shouldCheckSeoApiKeyStatus) {
-      setShowMissingSeoApiKeyModal(false);
-      return;
-    }
-
     if (seoApiKeyStatusQuery.isError) {
       setShowMissingSeoApiKeyModal(false);
       return;
@@ -86,7 +77,6 @@ export function AuthenticatedAppLayout({
     seoApiKeyStatusQuery.data,
     seoApiKeyStatusQuery.isError,
     seoApiKeyStatusQuery.isSuccess,
-    shouldCheckSeoApiKeyStatus,
   ]);
 
   const shouldShowMissingSeoApiKeyModal =
@@ -134,6 +124,8 @@ export function AuthenticatedAppLayout({
               shouldShowSeoApiWarning={shouldShowSeoApiWarning}
               seoApiKeyStatusError={seoApiKeyStatusError}
             />
+
+            <ImpersonationBanner />
 
             {banner}
 

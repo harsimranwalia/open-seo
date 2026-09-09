@@ -29,7 +29,10 @@ function AuditIssuesPage() {
       }
       onCategoryChange={(next) =>
         void navigate({
-          search: (prev) => ({ ...prev, category: next }),
+          search: (prev: Record<string, unknown>) => ({
+            ...prev,
+            category: next,
+          }),
           replace: true,
         })
       }

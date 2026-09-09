@@ -1,22 +1,8 @@
-import { autumn } from "@/server/billing/autumn";
-import {
-  AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-  AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-} from "@/shared/billing";
 import { mcpResponse } from "@/server/mcp/formatters";
 import { getAuth, type ToolExtra } from "@/server/mcp/context";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { optionalMetaOutputSchema } from "@/server/mcp/output-schemas";
 import { z } from "zod";
-
-async function checkBalance(featureId: string, customerId: string) {
-  try {
-    const result = await autumn.check({ customerId, featureId });
-    return result.balance?.remaining ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export const whoamiTool = {
   name: "whoami",
@@ -43,17 +29,8 @@ export const whoamiTool = {
   handler: async (_args: Record<string, never>, extra: ToolExtra) => {
     const auth = getAuth(extra);
     const isHosted = await isHostedServerAuthMode();
-    let creditsRemaining: number | null = null;
-    if (isHosted) {
-      const [base, topup] = await Promise.all([
-        checkBalance(AUTUMN_SEO_DATA_BALANCE_FEATURE_ID, auth.organizationId),
-        checkBalance(
-          AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-          auth.organizationId,
-        ),
-      ]);
-      creditsRemaining = (base ?? 0) + (topup ?? 0);
-    }
+    // Billing/Autumn is disabled — report unlimited credits in hosted mode.
+    const creditsRemaining = isHosted ? Number.MAX_SAFE_INTEGER : null;
     const lines = [
       `User: ${auth.userId} (${auth.userEmail})`,
       `Organization: ${auth.organizationId}`,
@@ -61,9 +38,7 @@ export const whoamiTool = {
       `Scopes: ${auth.scopes.length > 0 ? auth.scopes.join(", ") : "none"}`,
     ];
     if (isHosted) {
-      lines.push(
-        `Credits remaining: ${creditsRemaining != null ? creditsRemaining.toLocaleString() : "unknown"}`,
-      );
+      lines.push(`Credits remaining: unlimited`);
     }
     return mcpResponse({
       text: lines.join("\n"),

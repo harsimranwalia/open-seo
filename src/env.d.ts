@@ -12,14 +12,13 @@ declare namespace Cloudflare {
     // Durable Object backing the SAM in-app agent (see wrangler.jsonc).
     SAM_CHAT: DurableObjectNamespace;
 
-    AUTH_MODE?: "cloudflare_access" | "local_noauth" | "hosted";
-    BYPASS_EMAIL_VERIFICATION?: string;
-    TEAM_DOMAIN?: string;
-    POLICY_AUD?: string;
+    AUTH_MODE?: "hosted";
     POSTHOG_PUBLIC_KEY?: string;
     POSTHOG_HOST?: string;
     BETTER_AUTH_SECRET?: string;
     BETTER_AUTH_URL?: string;
+    SUPER_ADMIN_EMAIL?: string;
+    SUPER_ADMIN_PASSWORD?: string;
     DATABASE_PROVIDER?: "d1" | "postgres";
     HYPERDRIVE?: {
       connectionString: string;
@@ -27,13 +26,7 @@ declare namespace Cloudflare {
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     LOOPS_API_KEY?: string;
-    LOOPS_TRANSACTIONAL_VERIFY_EMAIL_ID?: string;
     LOOPS_TRANSACTIONAL_RESET_PASSWORD_ID?: string;
-    AUTUMN_SECRET_KEY?: string;
-    AUTUMN_WEBHOOK_SECRET?: string;
-
-    // Cloudflare Turnstile — signup captcha (hosted only). Secret verifies
-    // tokens server-side; site key is public and inlined into the client build.
     TURNSTILE_SECRET_KEY?: string;
     TURNSTILE_SITE_KEY?: string;
 
@@ -48,9 +41,8 @@ declare namespace Cloudflare {
 }
 
 interface ImportMetaEnv {
-  readonly AUTH_MODE?: "cloudflare_access" | "local_noauth" | "hosted";
+  readonly AUTH_MODE?: "hosted";
   readonly DATABASE_PROVIDER?: "d1" | "postgres";
-  readonly BYPASS_EMAIL_VERIFICATION?: string;
   readonly POSTHOG_PUBLIC_KEY?: string;
   readonly POSTHOG_HOST?: string;
   readonly TURNSTILE_SITE_KEY?: string;

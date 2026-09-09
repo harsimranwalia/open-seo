@@ -1,20 +1,14 @@
 import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
-import { useCustomer } from "autumn-js/react";
 import { useEffect, useRef, useState } from "react";
 import {
   ChatMessage,
   messageHasVisibleContent,
   type ResolveToolLabel,
 } from "@/client/components/chat/ChatMessage";
-import { captureClientEvent } from "@/client/lib/posthog";
-import { AUTUMN_PAID_PLAN_ID } from "@/shared/billing";
-import { FREE_ONBOARDING_QUESTION_LIMIT } from "@/shared/onboardingChat";
 import {
   ChatComposer,
-  ChatGate,
   SuggestedQuestions,
-  UpgradeSidebar,
   WelcomeMessage,
 } from "./OnboardingChatParts";
 
@@ -54,7 +48,7 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
 };
 
 // Onboarding curates a label per tool and hides any tool it hasn't named, so
-// the pre-paywall preview only shows the handful it means to surface.
+// the preview only shows the handful it means to surface.
 const resolveToolLabel: ResolveToolLabel = (partType) =>
   TOOL_LABELS[partType] ?? null;
 
@@ -81,53 +75,17 @@ export function OnboardingChatConversation({
 }) {
   // The conversation lives in a Durable Object (Agents SDK), keyed by projectId,
   // so history persists across reloads. The WebSocket connection is authorized
-  // in the Worker (src/server.ts) before it reaches the DO; billing gates come
-  // back as normal assistant messages rather than HTTP errors.
+  // in the Worker (src/server.ts) before it reaches the DO.
   const agent = useAgent({ agent: "onboarding-chat", name: projectId });
   const { messages, sendMessage, status } = useAgentChat({ agent });
 
-  // This chat is only ever the pre-upgrade free preview: once a user upgrades
-  // they are routed into the GSC onboarding step and never return here, so
-  // there's no "paid" state to model — the question cap always applies.
-  const customerQuery = useCustomer();
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
   // Set once the user asks for their strategy (welcome CTA or the strategy
   // chip) so we don't keep offering the "What do you recommend" chip.
   const [strategyRequested, setStrategyRequested] = useState(false);
 
-  const questionsUsed = messages.filter((m) => m.role === "user").length;
-  const remaining = Math.max(0, FREE_ONBOARDING_QUESTION_LIMIT - questionsUsed);
-  const isLocked = remaining <= 0;
-  // Nudge once they're within the last few questions, not from the start.
-  const showRemainingHint = remaining > 0 && remaining <= 3;
-
   const isBusy = status === "submitted" || status === "streaming";
   const sendText = (text: string) => void sendMessage({ text });
-  async function startCheckout() {
-    setCheckoutError(null);
-    setIsStartingCheckout(true);
-    try {
-      captureClientEvent("billing:checkout_start");
-      // After payment, re-enter onboarding at the GSC step (not back into this
-      // chat) so the user finishes connecting Search Console + MCP.
-      const successUrl = new URL("/onboarding", window.location.origin);
-      successUrl.searchParams.set("step", "3");
-      successUrl.searchParams.set("checkout", "success");
-      await customerQuery.attach({
-        planId: AUTUMN_PAID_PLAN_ID,
-        redirectMode: "always",
-        successUrl: successUrl.toString(),
-      });
-    } catch (checkoutErr) {
-      console.error("Failed to start checkout", checkoutErr);
-      setCheckoutError(
-        "We couldn't start checkout. Please refresh and try again.",
-      );
-      setIsStartingCheckout(false);
-    }
-  }
 
   // Pin to the bottom while the user is following along; the strategy doc plus
   // a streaming reply quickly grows past the viewport.
@@ -164,22 +122,10 @@ export function OnboardingChatConversation({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <UpgradeSidebar
-        domain={domain}
-        questionsUsed={questionsUsed}
-        isStartingCheckout={isStartingCheckout}
-        onUpgrade={() => void startCheckout()}
-      />
-
       <div className="flex min-w-0 flex-1 flex-col">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
           <div className="mx-auto max-w-2xl space-y-6">
-            <WelcomeMessage
-              domain={domain}
-              checkoutError={checkoutError}
-              isStartingCheckout={isStartingCheckout}
-              onUpgrade={() => void startCheckout()}
-            />
+            <WelcomeMessage domain={domain} />
 
             {messages.map((message, index) => (
               <ChatMessage
@@ -206,9 +152,6 @@ export function OnboardingChatConversation({
 
             {status === "error" ? (
               <p className="text-sm text-error">
-                {/* Billing gates (free-question cap / out-of-credits) come
-                    back as normal assistant messages now, so this only covers
-                    genuine failures. */}
                 Something went wrong. Please refresh and try again.
               </p>
             ) : null}
@@ -233,31 +176,11 @@ export function OnboardingChatConversation({
           </div>
         </div>
 
-        {isLocked ? (
-          <ChatGate
-            isStartingCheckout={isStartingCheckout}
-            onUpgrade={() => void startCheckout()}
-          />
-        ) : (
-          <div className="flex-shrink-0 border-t border-base-300 px-5 py-3">
-            <div className="mx-auto w-full max-w-2xl space-y-2">
-              {showRemainingHint ? (
-                <p className="px-1 text-xs text-base-content/50">
-                  {remaining} free question{remaining === 1 ? "" : "s"} left.{" "}
-                  <button
-                    type="button"
-                    className="link link-primary"
-                    disabled={isStartingCheckout}
-                    onClick={() => void startCheckout()}
-                  >
-                    Upgrade for full access
-                  </button>
-                </p>
-              ) : null}
-              <ChatComposer busy={isBusy} onSend={sendText} />
-            </div>
+        <div className="flex-shrink-0 border-t border-base-300 px-5 py-3">
+          <div className="mx-auto w-full max-w-2xl space-y-2">
+            <ChatComposer busy={isBusy} onSend={sendText} />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
