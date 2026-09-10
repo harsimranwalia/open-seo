@@ -1,33 +1,29 @@
-# Coolify / reverse-proxy deploy. Host 3001 is often already taken; this stack
-# uses 3002. Set Coolify "Docker compose location" to /compose.coolify.yaml
+# Coolify: public URL is https://seo.codenak.com (port 443 via Traefik).
+# App listens on 80 inside the container so Coolify domain needs no :port suffix.
+# Do not publish host ports — Coolify already binds 80/443.
 services:
   open-seo:
     image: ${OPEN_SEO_IMAGE:-ghcr.io/every-app/open-seo:latest}
-    build:
-      context: .
-      dockerfile: Dockerfile.selfhost
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - CLOUDFLARE_INCLUDE_PROCESS_ENV=true
-      - PORT=${PORT:-3002}
+      - PORT=80
       - ALLOWED_HOST=${ALLOWED_HOST:-seo.codenak.com}
       - AUTH_MODE=${AUTH_MODE:-hosted}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL:-https://seo.codenak.com}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
       - SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
-      - OPENSEO_TELEMETRY_DISABLED=${OPENSEO_TELEMETRY_DISABLED:-}
-      - DO_NOT_TRACK=${DO_NOT_TRACK:-}
       - DATAFORSEO_API_KEY=${DATAFORSEO_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - VITE_SHOW_DEVTOOLS=false
-    ports:
-      - "${PORT:-3002}:${PORT:-3002}"
+    expose:
+      - "80"
     volumes:
       - open_seo_data:/app/.wrangler
 volumes:
