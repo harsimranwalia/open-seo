@@ -1,0 +1,35 @@
+# Coolify / reverse-proxy deploy. Do not publish host ports — Coolify's proxy
+# routes https://seo.codenak.com to container port 3001.
+# Set Coolify "Docker compose location" to /compose.coolify.yaml
+services:
+  open-seo:
+    image: ${OPEN_SEO_IMAGE:-ghcr.io/every-app/open-seo:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile.selfhost
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - CLOUDFLARE_INCLUDE_PROCESS_ENV=true
+      - PORT=3001
+      - ALLOWED_HOST=${ALLOWED_HOST:-seo.codenak.com}
+      - AUTH_MODE=${AUTH_MODE:-hosted}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-https://seo.codenak.com}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
+      - SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
+      - OPENSEO_TELEMETRY_DISABLED=${OPENSEO_TELEMETRY_DISABLED:-}
+      - DO_NOT_TRACK=${DO_NOT_TRACK:-}
+      - DATAFORSEO_API_KEY=${DATAFORSEO_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - VITE_SHOW_DEVTOOLS=false
+    expose:
+      - "3001"
+    volumes:
+      - open_seo_data:/app/.wrangler
+volumes:
+  open_seo_data:
